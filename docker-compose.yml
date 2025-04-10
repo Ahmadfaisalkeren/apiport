@@ -1,7 +1,7 @@
 services:
-  portfolio_api:
-    container_name: portfolio_api
-    image: image_portfolio_api
+  apiport:
+    container_name: apiport
+    image: image_apiport
     build: .
     ports:
       - "127.0.0.1:8001:80"

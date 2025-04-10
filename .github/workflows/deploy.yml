@@ -14,14 +14,14 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            PROJECT_PATH="/var/www/docker/portfolio_api"
+            PROJECT_PATH="/var/www/docker/apiport"
 
             if [ -d "$PROJECT_PATH/.git" ]; then
               cd $PROJECT_PATH
               echo "Project exists, performing update..."
             else
               rm -rf $PROJECT_PATH
-              git clone -b main https://github.com/Ahmadfaisalkeren/portfolio_api.git $PROJECT_PATH
+              git clone -b main https://github.com/Ahmadfaisalkeren/apiport.git $PROJECT_PATH
               cd $PROJECT_PATH
             fi
 
@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
+            cd /var/www/docker/apiport
             git pull origin main
 
       - name: Setup Environment File
@@ -42,7 +42,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
+            cd /var/www/docker/apiport
             if [ ! -f .env ]; then
               cp .env.example .env
               sed -i "s|APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env
@@ -59,7 +59,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             echo "Deploying Nginx Configuration..."
-            cp /var/www/docker/portfolio_api/.nginx/portfolio_api.conf /etc/nginx/conf.d/portfolio_api.conf
+            cp /var/www/docker/apiport/.nginx/apiport.conf /etc/nginx/conf.d/apiport.conf
             docker exec nginx-container nginx -s reload
             echo "Nginx configuration updated & reloaded."
 
@@ -70,7 +70,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
+            cd /var/www/docker/apiport
             docker compose up -d --build
 
             - name: Verify Services
@@ -80,13 +80,13 @@ jobs:
               username: ${{ secrets.VPS_USERNAME }}
               key: ${{ secrets.VPS_SSH_KEY }}
               script: |
-                cd /var/www/docker/portfolio_api
+                cd /var/www/docker/apiport
                 echo "Checking container statuses..."
                 docker ps | grep mysql_server
-                docker ps | grep portfolio_api
+                docker ps | grep apiport
 
                 echo "Verifying network connectivity..."
-                docker exec portfolio_api ping -c 2 mysql_server
+                docker exec apiport ping -c 2 mysql_server
 
                 echo "Testing MySQL connection..."
                 docker exec mysql_server mysqladmin ping -h localhost -u root -p${{ secrets.DB_PASSWORD }}
@@ -98,7 +98,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            docker exec -i mysql_server mysql -u root -p${{ secrets.DB_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS portfolio_api;"
+            docker exec -i mysql_server mysql -u root -p${{ secrets.DB_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS apiport;"
 
       - name: Wait for Database
         uses: appleboy/ssh-action@v0.1.10
@@ -107,7 +107,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
+            cd /var/www/docker/apiport
             counter=0
             max_retries=15
             until docker exec mysql_server mysql -u root -p${{ secrets.DB_PASSWORD }} -e "SELECT 1;" 2>/dev/null; do
@@ -124,8 +124,8 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
-            docker compose exec -T portfolio_api php artisan key:generate
+            cd /var/www/docker/apiport
+            docker compose exec -T apiport php artisan key:generate
 
       - name: Run Database Migrations
         uses: appleboy/ssh-action@v0.1.10
@@ -134,8 +134,8 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
-            docker compose exec -T portfolio_api php artisan migrate --force
+            cd /var/www/docker/apiport
+            docker compose exec -T apiport php artisan migrate --force
 
       - name: Create Storage Link
         uses: appleboy/ssh-action@v0.1.10
@@ -144,8 +144,8 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
-            docker compose exec -T portfolio_api php artisan storage:link
+            cd /var/www/docker/apiport
+            docker compose exec -T apiport php artisan storage:link
 
       - name: Clear Application Cache
         uses: appleboy/ssh-action@v0.1.10
@@ -154,5 +154,5 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /var/www/docker/portfolio_api
-            docker compose exec -T portfolio_api php artisan optimize:clear
+            cd /var/www/docker/apiport
+            docker compose exec -T apiport php artisan optimize:clear
