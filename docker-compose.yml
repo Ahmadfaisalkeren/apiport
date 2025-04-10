@@ -1,0 +1,15 @@
+services:
+  portfolio_api:
+    container_name: portfolio_api
+    image: image_portfolio_api
+    build: .
+    ports:
+      - "127.0.0.1:8001:80"
+    env_file:
+      - .env
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    external: true
